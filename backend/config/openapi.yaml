@@ -1,0 +1,347 @@
+openapi: '3.0.3'
+info:
+  title: Blissim API
+  version: '0.1.0'
+servers:
+  - url: /
+paths:
+  /api/v1/products:
+    get:
+      operationId: listProducts
+      summary: Lister les produits
+      tags: [Produits]
+      responses:
+        "200":
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        "502":
+          $ref: '#/components/responses/ProductApiUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+  /api/v1/products/{id}:
+    get:
+      operationId: getProduct
+      summary: Consulter un produit
+      tags: [Produits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 9999999999
+      responses:
+        "200":
+          description: Produit
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+        "404":
+          description: Produit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: PRODUCT_NOT_FOUND
+                  message: Le produit demandé est introuvable.
+        "502":
+          $ref: '#/components/responses/ProductApiUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+  /api/v1/products/{id}/comments:
+    get:
+      operationId: listComments
+      summary: Lister les commentaires
+      tags: [Commentaires]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 999999999
+      responses:
+        "200":
+          description: Liste des commentaires
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        "503":
+          $ref: '#/components/responses/DatabaseUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+  /api/v1/comments:
+    post:
+      operationId: createComment
+      summary: Ajouter un commentaire
+      tags: [Commentaires]
+      requestBody:
+        $ref: '#/components/requestBodies/CreateCommentInput'
+      responses:
+        "201":
+          $ref: '#/components/responses/CommentSaved'
+        "400":
+          $ref: '#/components/responses/InvalidRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "415":
+          $ref: '#/components/responses/UnsupportedMediaType'
+        "422":
+          $ref: '#/components/responses/ValidationError'
+        "502":
+          $ref: '#/components/responses/ProductApiUnavailable'
+        "503":
+          $ref: '#/components/responses/DatabaseUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+  /api/v1/comments/{id}:
+    put:
+      operationId: updateComment
+      summary: Modifier un commentaire
+      tags: [Commentaires]
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateCommentInput'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 999999999999999999
+      responses:
+        "200":
+          $ref: '#/components/responses/CommentSaved'
+        "400":
+          $ref: '#/components/responses/InvalidRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "415":
+          $ref: '#/components/responses/UnsupportedMediaType'
+        "422":
+          $ref: '#/components/responses/ValidationError'
+        "503":
+          $ref: '#/components/responses/DatabaseUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+    delete:
+      operationId: deleteComment
+      summary: Supprimer un commentaire
+      tags: [Commentaires]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+            maximum: 999999999999999999
+      responses:
+        "204":
+          description: Commentaire supprimé
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "503":
+          $ref: '#/components/responses/DatabaseUnavailable'
+        "500":
+          $ref: '#/components/responses/InternalError'
+components:
+  requestBodies:
+    CreateCommentInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateCommentInput'
+    UpdateCommentInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateCommentInput'
+  schemas:
+    CreateCommentInput:
+      type: object
+      required: [product_id, author, content]
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          example: 1
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Camille
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          example: Mon avis
+    UpdateCommentInput:
+      type: object
+      required: [author, content]
+      properties:
+        author:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Camille
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          example: Mon avis
+    Comment:
+      type: object
+      required: [id, productApiId, author, content, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        productApiId:
+          type: integer
+        author:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    Product:
+      type: object
+      required: [id, title, price, image, description, category]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        image:
+          type: string
+          format: uri
+          description: URL de l’image du produit.
+        description:
+          type: string
+        category:
+          type: string
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+  responses:
+    InternalError:
+      description: Erreur interne
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: Une erreur interne est survenue.
+    CommentSaved:
+      description: Commentaire enregistré
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                $ref: '#/components/schemas/Comment'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Données invalides
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Les données envoyées sont invalides.
+              details:
+                content: [Le commentaire est obligatoire.]
+    InvalidRequest:
+      description: JSON invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnsupportedMediaType:
+      description: Format non pris en charge
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    DatabaseUnavailable:
+      description: Base de données indisponible
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ProductApiUnavailable:
+      description: Service produits indisponible
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: PRODUCT_API_UNAVAILABLE
+              message: Le catalogue est temporairement indisponible. Réessayez plus tard.

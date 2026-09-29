@@ -1,0 +1,18 @@
+monolog:
+    handlers:
+        main:
+            type: stream
+            path: '%kernel.logs_dir%/%kernel.environment%.log'
+            level: info
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                level: debug
+
+when@test:
+    monolog:
+        handlers:
+            main:
+                level: warning

@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Dto\Input;
+
+use Symfony\Component\Validator\Constraints as Assert;
+
+final class CreateCommentInput
+{
+    #[Assert\Positive(message: 'L’identifiant du produit doit être un entier positif.')]
+    #[Assert\LessThanOrEqual(value: 2147483647, message: 'L’identifiant du produit est trop grand.')]
+    public int $product_id = 0;
+
+    #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
+    #[Assert\Length(max: 120, maxMessage: 'Le nom ne doit pas dépasser {{ limit }} caractères.')]
+    public string $author;
+
+    #[Assert\NotBlank(message: 'Le commentaire est obligatoire.')]
+    #[Assert\Length(max: 2000, maxMessage: 'Le commentaire ne doit pas dépasser {{ limit }} caractères.')]
+    public string $content;
+
+    public function __construct(string $author = '', string $content = '')
+    {
+        $this->author = trim($author);
+        $this->content = trim($content);
+    }
+}

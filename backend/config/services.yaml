@@ -1,0 +1,41 @@
+parameters:
+    env(DUMMY_JSON_API_BASE_URL): 'https://dummyjson.com'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude: '../src/{Dto,Entity,Exception,Kernel.php}'
+
+    App\Service\DummyJsonApiClient:
+        arguments:
+            $baseUrl: '%env(DUMMY_JSON_API_BASE_URL)%'
+
+    App\Service\ProductApiClientInterface:
+        alias: App\Service\DummyJsonApiClient
+
+    App\Service\DatabaseConnection:
+        arguments:
+            $dsn: '%env(DATABASE_DSN)%'
+            $user: '%env(DATABASE_USER)%'
+            $password: '%env(DATABASE_PASSWORD)%'
+
+    App\Service\DatabaseConnectionInterface:
+        alias: App\Service\DatabaseConnection
+
+when@test:
+    services:
+        App\Service\DatabaseConnectionInterface:
+            alias: App\Service\DatabaseConnection
+            public: true
+
+        App\Service\ProductApiClientInterface:
+            alias: App\Service\DummyJsonApiClient
+            public: true
+
+        App\Service\DummyJsonApiClient:
+            arguments:
+                $baseUrl: 'https://dummyjson.com'

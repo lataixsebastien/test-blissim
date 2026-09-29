@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-blissim}
+      POSTGRES_USER: ${POSTGRES_USER:-blissim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blissim}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/blissim.sql:/docker-entrypoint-initdb.d/01-blissim.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-blissim} -d ${POSTGRES_DB:-blissim}"]
+      start_period: 60s
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      APP_SECRET: ${APP_SECRET:-change-me-in-local-env}
+      DATABASE_DSN: pgsql:host=postgres;port=5432;dbname=${POSTGRES_DB:-blissim}
+      DATABASE_USER: ${POSTGRES_USER:-blissim}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-blissim}
+      DUMMY_JSON_API_BASE_URL: ${DUMMY_JSON_API_BASE_URL:-https://dummyjson.com}
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN:-http://localhost:8001}
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+      - backend_var:/app/var
+      - ./backend/var/log:/app/var/log
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8001}:80"
+    volumes:
+      - ./backend:/app:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - backend
+      - frontend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: /api/v1
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+
+volumes:
+  postgres_data:
+  backend_vendor:
+  backend_var:
+  frontend_node_modules:
